@@ -271,6 +271,109 @@ fork(void)
   return pid;
 }
 
+
+// Create a new thread sharing the current process address space.
+int
+clone(void (*fcn)(void*), void *arg, void *stack)
+{
+  int i, pid;
+  uint sp;
+  struct proc *np;
+  struct proc *curproc = myproc();
+
+  if(fcn == 0 || arg == 0 || stack == 0)
+    return -1;
+  if(((uint)stack % PGSIZE) != 0)
+    return -1;
+
+  if((np = allocproc()) == 0)
+    return -1;
+
+  np->vm = curproc->vm;
+  np->vm->ref++;
+  np->parent = curproc;
+  *np->tf = *curproc->tf;
+
+  sp = (uint)stack + PGSIZE;
+  sp -= 4;
+  *(uint*)sp = 0xffffffff;
+  sp -= 4;
+  *(uint*)sp = (uint)arg;
+
+  np->tf->eip = (uint)fcn;
+  np->tf->esp = sp;
+  np->tf->eax = 0;
+
+  for(i = 0; i < NOFILE; i++)
+    if(curproc->ofile[i])
+      np->ofile[i] = filedup(curproc->ofile[i]);
+  np->cwd = idup(curproc->cwd);
+
+  safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+  np->isthread = 1;
+  np->tid = np->pid;
+  np->tgid = curproc->tgid;
+  np->mainthread = 0;
+  np->ustack = stack;
+
+  pid = np->pid;
+
+  acquire(&ptable.lock);
+  np->state = RUNNABLE;
+  release(&ptable.lock);
+
+  return pid;
+}
+
+// Wait for a child thread in the current thread group to exit.
+int
+join(void **stack)
+{
+  struct proc *p;
+  int pid;
+  struct proc *curproc = myproc();
+
+  acquire(&ptable.lock);
+  for(;;){
+    int havethreads = 0;
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->parent != curproc || p->isthread == 0)
+        continue;
+      havethreads = 1;
+      if(p->state == ZOMBIE){
+        pid = p->pid;
+        if(stack)
+          *stack = p->ustack;
+        kfree(p->kstack);
+        p->kstack = 0;
+        vmspacedecref(p->vm);
+        p->vm = 0;
+        p->pid = 0;
+        p->isthread = 0;
+        p->tid = 0;
+        p->tgid = 0;
+        p->mainthread = 0;
+        p->ustack = 0;
+        p->retval = 0;
+        p->parent = 0;
+        p->name[0] = 0;
+        p->killed = 0;
+        p->state = UNUSED;
+        release(&ptable.lock);
+        return pid;
+      }
+    }
+
+    if(!havethreads || curproc->killed){
+      release(&ptable.lock);
+      return -1;
+    }
+
+    sleep(curproc, &ptable.lock);
+  }
+}
+
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
 // until its parent calls wait() to find out it exited.

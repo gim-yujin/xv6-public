@@ -27,15 +27,20 @@ static struct {
 static void
 printint(int xx, int base, int sign)
 {
-  static char digits[] = "0123456789abcdef";
+  static const char digits[] = "0123456789abcdef";
   char buf[16];
   int i;
   uint x;
 
-  if(sign && (sign = xx < 0))
-    x = -xx;
-  else
+  if(sign){
+    sign = xx < 0;
+    if(sign)
+      x = -xx;
+    else
+      x = xx;
+  } else {
     x = xx;
+  }
 
   i = 0;
   do{
@@ -191,10 +196,14 @@ struct {
 void
 consoleintr(int (*getc)(void))
 {
-  int c, doprocdump = 0;
+  int doprocdump = 0;
 
   acquire(&cons.lock);
-  while((c = getc()) >= 0){
+  for(;;){
+    int c = getc();
+
+    if(c < 0)
+      break;
     switch(c){
     case C('P'):  // Process listing.
       // procdump() locks cons.lock indirectly; invoke later
@@ -236,7 +245,6 @@ int
 consoleread(struct inode *ip, char *dst, int n)
 {
   uint target;
-  int c;
 
   iunlock(ip);
   target = n;
@@ -250,7 +258,7 @@ consoleread(struct inode *ip, char *dst, int n)
       }
       sleep(&input.r, &cons.lock);
     }
-    c = input.buf[input.r++ % INPUT_BUF];
+    int c = input.buf[input.r++ % INPUT_BUF];
     if(c == C('D')){  // EOF
       if(n < target){
         // Save ^D for next time, to make sure
@@ -271,7 +279,7 @@ consoleread(struct inode *ip, char *dst, int n)
 }
 
 int
-consolewrite(struct inode *ip, char *buf, int n)
+consolewrite(struct inode *ip, const char *buf, int n)
 {
   int i;
 

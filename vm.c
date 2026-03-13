@@ -160,7 +160,7 @@ switchuvm(struct proc *p)
     panic("switchuvm: no process");
   if(p->kstack == 0)
     panic("switchuvm: no kstack");
-  if(p->pgdir == 0)
+  if(p->vm == 0 || p->vm->pgdir == 0)
     panic("switchuvm: no pgdir");
 
   pushcli();
@@ -173,7 +173,7 @@ switchuvm(struct proc *p)
   // forbids I/O instructions (e.g., inb and outb) from user space
   mycpu()->ts.iomb = (ushort) 0xFFFF;
   ltr(SEG_TSS << 3);
-  lcr3(V2P(p->pgdir));  // switch to process's address space
+  lcr3(V2P(p->vm->pgdir));  // switch to process's address space
   popcli();
 }
 
@@ -391,4 +391,3 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
 // Blank page.
 //PAGEBREAK!
 // Blank page.
-

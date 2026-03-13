@@ -38,7 +38,7 @@ grep(char *pattern, int fd)
 int
 main(int argc, char *argv[])
 {
-  int fd, i;
+  int i;
   char *pattern;
 
   if(argc <= 1){
@@ -53,6 +53,8 @@ main(int argc, char *argv[])
   }
 
   for(i = 2; i < argc; i++){
+    int fd;
+
     if((fd = open(argv[i], 0)) < 0){
       printf(1, "grep: cannot open %s\n", argv[i]);
       exit();

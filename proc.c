@@ -388,7 +388,7 @@ join(void **stack)
       return -1;
     }
 
-    sleep(curproc, &ptable.lock);
+    sleep(&curproc->vm->joinchan, &ptable.lock);
   }
 }
 
@@ -407,9 +407,14 @@ exit(void)
     panic("init exiting");
 
   acquire(&ptable.lock);
-  lastthread = (curproc->vm == 0 || curproc->vm->ref == 1);
-  vmspacedecref(curproc->vm);
-  curproc->vm = 0;
+  {
+    struct vmspace *vm = curproc->vm;
+    lastthread = (vm == 0 || vm->ref == 1);
+    if(!lastthread)
+      wakeup1(&vm->joinchan);
+    vmspacedecref(vm);
+    curproc->vm = 0;
+  }
 
   if(!lastthread){
     wakeup1(curproc->parent);
@@ -667,24 +672,56 @@ wakeup(const void *chan)
   release(&ptable.lock);
 }
 
-// Kill the process with the given pid.
-// Process won't exit until it returns
-// to user space (see trap in trap.c).
+// Kill the thread group containing pid.
+// kill(pid) propagates to every thread sharing target tgid.
 int
 kill(int pid)
+{
+  struct proc *p;
+  int tgid = -1;
+  int found = 0;
+
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state != UNUSED && p->pid == pid){
+      tgid = p->tgid;
+      break;
+    }
+  }
+
+  if(tgid < 0){
+    release(&ptable.lock);
+    return -1;
+  }
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->state == UNUSED || p->tgid != tgid)
+      continue;
+    found = 1;
+    p->killed = 1;
+    if(p->state == SLEEPING)
+      p->state = RUNNABLE;
+  }
+
+  release(&ptable.lock);
+  return found ? 0 : -1;
+}
+
+// Kill only the thread identified by tid.
+int
+tkill(int tid)
 {
   struct proc *p;
 
   acquire(&ptable.lock);
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->pid == pid){
-      p->killed = 1;
-      // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
-        p->state = RUNNABLE;
-      release(&ptable.lock);
-      return 0;
-    }
+    if(p->state == UNUSED || p->tid != tid)
+      continue;
+    p->killed = 1;
+    if(p->state == SLEEPING)
+      p->state = RUNNABLE;
+    release(&ptable.lock);
+    return 0;
   }
   release(&ptable.lock);
   return -1;
@@ -717,7 +754,7 @@ procdump(void)
       state = states[p->state];
     else
       state = "???";
-    cprintf("%d %s %s", p->pid, state, p->name);
+    cprintf("pid=%d tid=%d tgid=%d %s %s", p->pid, p->tid, p->tgid, state, p->name);
     if(p->state == SLEEPING){
       getcallerpcs((uint*)p->context->ebp+2, pc);
       for(i=0; i<10 && pc[i] != 0; i++)

@@ -290,7 +290,7 @@ ilock(struct inode *ip)
 
   if(ip->valid == 0){
     struct buf *bp = bread(ip->dev, IBLOCK(ip->inum, sb));
-    struct dinode * const dip = (struct dinode*)bp->data + ip->inum%IPB;
+    const struct dinode *dip = (struct dinode*)bp->data + ip->inum%IPB;
     ip->type = dip->type;
     ip->major = dip->major;
     ip->minor = dip->minor;
@@ -542,7 +542,7 @@ dirlookup(struct inode *dp, const char *name, uint *poff)
 
 // Write a new directory entry (name, inum) into the directory dp.
 int
-dirlink(struct inode *dp, char *name, uint inum)
+dirlink(struct inode *dp, const char *name, uint inum)
 {
   int off;
   struct dirent de;

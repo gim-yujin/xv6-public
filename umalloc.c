@@ -20,6 +20,7 @@ union header {
 typedef union header Header;
 
 static Header base;
+static Align *unused_x __attribute__((unused)) = &base.x;
 static Header *freep;
 
 void

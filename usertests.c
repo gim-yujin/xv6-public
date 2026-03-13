@@ -517,9 +517,9 @@ sharedfd(void)
 void
 fourfiles(void)
 {
-  int fd, i, j, n, pi;
+  int fd, i, j, n, pi, pid;
   char *names[] = { "f0", "f1", "f2", "f3" };
-  char *fname;
+  const char *fname;
 
   printf(1, "fourfiles test\n");
 
@@ -584,8 +584,8 @@ void
 createdelete(void)
 {
   enum { N = 20 };
-  int i, fd, pi;
-  char name[32];
+  int i, fd, pi, pid;
+  char cfile[32];
 
   printf(1, "createdelete test\n");
 
@@ -597,19 +597,19 @@ createdelete(void)
     }
 
     if(pid == 0){
-      name[0] = 'p' + pi;
-      name[2] = '\0';
+      cfile[0] = 'p' + pi;
+      cfile[2] = '\0';
       for(i = 0; i < N; i++){
-        name[1] = '0' + i;
-        fd = open(name, O_CREATE | O_RDWR);
+        cfile[1] = '0' + i;
+        fd = open(cfile, O_CREATE | O_RDWR);
         if(fd < 0){
           printf(1, "create failed\n");
           exit();
         }
         close(fd);
         if(i > 0 && (i % 2 ) == 0){
-          name[1] = '0' + (i / 2);
-          if(unlink(name) < 0){
+          cfile[1] = '0' + (i / 2);
+          if(unlink(cfile) < 0){
             printf(1, "unlink failed\n");
             exit();
           }
@@ -623,17 +623,17 @@ createdelete(void)
     wait();
   }
 
-  name[0] = name[1] = name[2] = 0;
+  cfile[0] = cfile[1] = cfile[2] = 0;
   for(i = 0; i < N; i++){
     for(pi = 0; pi < 4; pi++){
-      name[0] = 'p' + pi;
-      name[1] = '0' + i;
-      fd = open(name, 0);
+      cfile[0] = 'p' + pi;
+      cfile[1] = '0' + i;
+      fd = open(cfile, 0);
       if((i == 0 || i >= N/2) && fd < 0){
-        printf(1, "oops createdelete %s didn't exist\n", name);
+        printf(1, "oops createdelete %s didn't exist\n", cfile);
         exit();
       } else if((i >= 1 && i < N/2) && fd >= 0){
-        printf(1, "oops createdelete %s did exist\n", name);
+        printf(1, "oops createdelete %s did exist\n", cfile);
         exit();
       }
       if(fd >= 0)
@@ -765,7 +765,7 @@ void
 concreate(void)
 {
   char file[3];
-  int i, n, fd;
+  int i, n, fd, pid;
   char fa[40];
   struct {
     ushort inum;
@@ -893,7 +893,7 @@ void
 bigdir(void)
 {
   int i, fd;
-  char name[10];
+  char dname[10];
 
   printf(1, "bigdir test\n");
   unlink("bd");
@@ -906,11 +906,11 @@ bigdir(void)
   close(fd);
 
   for(i = 0; i < 500; i++){
-    name[0] = 'x';
-    name[1] = '0' + (i / 64);
-    name[2] = '0' + (i % 64);
-    name[3] = '\0';
-    if(link("bd", name) != 0){
+    dname[0] = 'x';
+    dname[1] = '0' + (i / 64);
+    dname[2] = '0' + (i % 64);
+    dname[3] = '\0';
+    if(link("bd", dname) != 0){
       printf(1, "bigdir link failed\n");
       exit();
     }
@@ -918,11 +918,11 @@ bigdir(void)
 
   unlink("bd");
   for(i = 0; i < 500; i++){
-    name[0] = 'x';
-    name[1] = '0' + (i / 64);
-    name[2] = '0' + (i % 64);
-    name[3] = '\0';
-    if(unlink(name) != 0){
+    dname[0] = 'x';
+    dname[1] = '0' + (i / 64);
+    dname[2] = '0' + (i % 64);
+    dname[3] = '\0';
+    if(unlink(dname) != 0){
       printf(1, "bigdir unlink failed");
       exit();
     }
@@ -1415,7 +1415,9 @@ void
 sbrktest(void)
 {
   int fds[2], pid, pids[10];
-  char *a, *b, *c, *lastaddr, *oldbrk, *p, scratch;
+  char *a, *b, *c, *lastaddr, scratch;
+  const char *p;
+  const char *oldbrk;
   uint amt;
 
   printf(stdout, "sbrk test\n");
@@ -1495,7 +1497,7 @@ sbrktest(void)
   // can we read the kernel's memory?
   for(a = (char*)(KERNBASE); a < (char*) (KERNBASE+2000000); a += 50000){
     int ppid = getpid();
-    int pid = fork();
+    pid = fork();
     if(pid < 0){
       printf(stdout, "fork failed\n");
       exit();
@@ -1653,17 +1655,17 @@ fsfull()
   printf(1, "fsfull test\n");
 
   for(nfiles = 0; ; nfiles++){
-    char name[64];
-    name[0] = 'f';
-    name[1] = '0' + nfiles / 1000;
-    name[2] = '0' + (nfiles % 1000) / 100;
-    name[3] = '0' + (nfiles % 100) / 10;
-    name[4] = '0' + (nfiles % 10);
-    name[5] = '\0';
-    printf(1, "writing %s\n", name);
-    int fd = open(name, O_CREATE|O_RDWR);
+    char fname[64];
+    fname[0] = 'f';
+    fname[1] = '0' + nfiles / 1000;
+    fname[2] = '0' + (nfiles % 1000) / 100;
+    fname[3] = '0' + (nfiles % 100) / 10;
+    fname[4] = '0' + (nfiles % 10);
+    fname[5] = '\0';
+    printf(1, "writing %s\n", fname);
+    int fd = open(fname, O_CREATE|O_RDWR);
     if(fd < 0){
-      printf(1, "open %s failed\n", name);
+      printf(1, "open %s failed\n", fname);
       break;
     }
     int total = 0;
@@ -1681,14 +1683,14 @@ fsfull()
   }
 
   while(nfiles >= 0){
-    char name[64];
-    name[0] = 'f';
-    name[1] = '0' + nfiles / 1000;
-    name[2] = '0' + (nfiles % 1000) / 100;
-    name[3] = '0' + (nfiles % 100) / 10;
-    name[4] = '0' + (nfiles % 10);
-    name[5] = '\0';
-    unlink(name);
+    char fname[64];
+    fname[0] = 'f';
+    fname[1] = '0' + nfiles / 1000;
+    fname[2] = '0' + (nfiles % 1000) / 100;
+    fname[3] = '0' + (nfiles % 100) / 10;
+    fname[4] = '0' + (nfiles % 10);
+    fname[5] = '\0';
+    unlink(fname);
     nfiles--;
   }
 

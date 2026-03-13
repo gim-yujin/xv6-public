@@ -431,11 +431,15 @@ sys_pipe(void)
     return -1;
   if(pipealloc(&rf, &wf) < 0)
     return -1;
-  fd0 = -1;
-  fd1 = -1;
-  if((fd0 = fdalloc(rf)) < 0 || (fd1 = fdalloc(wf)) < 0){
-    if(fd0 >= 0)
-      myproc()->ofile[fd0] = 0;
+  fd0 = fdalloc(rf);
+  if(fd0 < 0){
+    fileclose(rf);
+    fileclose(wf);
+    return -1;
+  }
+  fd1 = fdalloc(wf);
+  if(fd1 < 0){
+    myproc()->ofile[fd0] = 0;
     fileclose(rf);
     fileclose(wf);
     return -1;

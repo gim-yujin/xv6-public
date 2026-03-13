@@ -158,7 +158,7 @@ thread_create(void (*start_routine)(void*), void *arg)
     return -1;
   aligned = (char*)(((uint)stack + PGSIZE - 1) & ~(PGSIZE - 1));
   {
-    int pid = clone(start_routine, arg, aligned);
+    int pid = clone(start_routine, arg, aligned + PGSIZE);
     if(pid < 0){
       free(stack);
       return -1;

@@ -25,8 +25,10 @@
 volatile struct ioapic *ioapic;
 
 // IO APIC MMIO structure: write reg, then read or write data.
+// cppcheck-suppress unusedStructMember
 struct ioapic {
   uint reg;
+  // cppcheck-suppress unusedStructMember
   uint pad[3];
   uint data;
 };
@@ -51,6 +53,7 @@ ioapicinit(void)
   int i, id, maxintr;
 
   ioapic = (volatile struct ioapic*)IOAPIC;
+  (void)ioapic->pad[0];
   maxintr = (ioapicread(REG_VER) >> 16) & 0xFF;
   id = ioapicread(REG_ID) >> 24;
   if(id != ioapicid)

@@ -36,8 +36,8 @@ int             filewrite(struct file*, char*, int n);
 
 // fs.c
 void            readsb(int dev, struct superblock *sb);
-int             dirlink(struct inode*, char*, uint);
-struct inode*   dirlookup(struct inode*, char*, uint*);
+int             dirlink(struct inode*, const char*, uint);
+struct inode*   dirlookup(struct inode*, const char*, uint*);
 struct inode*   ialloc(uint, short);
 struct inode*   idup(struct inode*);
 void            iinit(int dev);
@@ -50,7 +50,7 @@ int             namecmp(const char*, const char*);
 struct inode*   namei(char*);
 struct inode*   nameiparent(char*, char*);
 int             readi(struct inode*, char*, uint, uint);
-void            stati(struct inode*, struct stat*);
+void            stati(const struct inode*, struct stat*);
 int             writei(struct inode*, char*, uint, uint);
 
 // ide.c
@@ -59,7 +59,7 @@ void            ideintr(void);
 void            iderw(struct buf*);
 
 // ioapic.c
-void            ioapicenable(int irq, int cpu);
+void            ioapicenable(int irq, int cpunum);
 extern uchar    ioapicid;
 void            ioapicinit(void);
 
@@ -99,7 +99,7 @@ void            picinit(void);
 int             pipealloc(struct file**, struct file**);
 void            pipeclose(struct pipe*, int);
 int             piperead(struct pipe*, char*, int);
-int             pipewrite(struct pipe*, char*, int);
+int             pipewrite(struct pipe*, const char*, int);
 
 //PAGEBREAK: 16
 // proc.c
@@ -118,7 +118,7 @@ void            setproc(struct proc*);
 void            sleep(void*, struct spinlock*);
 void            userinit(void);
 int             wait(void);
-void            wakeup(void*);
+void            wakeup(const void*);
 void            yield(void);
 
 // swtch.S
@@ -127,7 +127,7 @@ void            swtch(struct context**, struct context*);
 // spinlock.c
 void            acquire(struct spinlock*);
 void            getcallerpcs(void*, uint*);
-int             holding(struct spinlock*);
+int             holding(const struct spinlock*);
 void            initlock(struct spinlock*, char*);
 void            release(struct spinlock*);
 void            pushcli(void);
@@ -174,17 +174,17 @@ void            uartputc(int);
 void            seginit(void);
 void            kvmalloc(void);
 pde_t*          setupkvm(void);
-char*           uva2ka(pde_t*, char*);
+char*           uva2ka(pde_t*, const char*);
 int             allocuvm(pde_t*, uint, uint);
 int             deallocuvm(pde_t*, uint, uint);
 void            freevm(pde_t*);
-void            inituvm(pde_t*, char*, uint);
+void            inituvm(pde_t*, const char*, uint);
 int             loaduvm(pde_t*, char*, struct inode*, uint, uint);
 pde_t*          copyuvm(pde_t*, uint);
 void            switchuvm(struct proc*);
 void            switchkvm(void);
 int             copyout(pde_t*, uint, void*, uint);
-void            clearpteu(pde_t *pgdir, char *uva);
+void            clearpteu(pde_t *pgdir, const char *uva);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

@@ -34,13 +34,25 @@ struct context {
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+// Per-thread-group virtual memory state.
+struct vmspace {
+  pde_t *pgdir;                // Page table shared by threads in the group
+  uint sz;                     // Size of user memory (bytes)
+  int ref;                     // Number of procs sharing this vmspace
+};
+
 // Per-process state
 struct proc {
-  uint sz;                     // Size of process memory (bytes)
-  pde_t* pgdir;                // Page table
   char *kstack;                // Bottom of kernel stack for this process
   enum procstate state;        // Process state
   int pid;                     // Process ID
+  int isthread;                // Non-zero if this proc is a thread
+  int tid;                     // Thread ID within a thread group
+  int tgid;                    // Thread-group ID (leader pid)
+  int mainthread;              // Non-zero for thread-group leader
+  void *ustack;                // User stack base used by clone()-style calls
+  void *retval;                // Thread exit return value
+  struct vmspace *vm;          // Shared address space metadata
   struct proc *parent;         // Parent process
   struct trapframe *tf;        // Trap frame for current syscall
   struct context *context;     // swtch() here to run process

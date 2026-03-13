@@ -32,7 +32,7 @@ static struct spinlock idelock;
 static struct buf *idequeue;
 
 static int havedisk1;
-static void idestart(struct buf*);
+static void idestart(const struct buf*);
 
 // Wait for IDE disk to become ready.
 static int
@@ -66,36 +66,31 @@ ideinit(void)
   }
 
   // Switch back to disk 0.
-  outb(0x1f6, 0xe0 | (0<<4));
+  outb(0x1f6, 0xe0);
 }
 
 // Start the request for b.  Caller must hold idelock.
 static void
-idestart(struct buf *b)
+idestart(const struct buf *b)
 {
   if(b == 0)
     panic("idestart");
   if(b->blockno >= FSSIZE)
     panic("incorrect blockno");
-  int sector_per_block =  BSIZE/SECTOR_SIZE;
-  int sector = b->blockno * sector_per_block;
-  int read_cmd = (sector_per_block == 1) ? IDE_CMD_READ :  IDE_CMD_RDMUL;
-  int write_cmd = (sector_per_block == 1) ? IDE_CMD_WRITE : IDE_CMD_WRMUL;
-
-  if (sector_per_block > 7) panic("idestart");
+  int sector = b->blockno * (BSIZE / SECTOR_SIZE);
 
   idewait(0);
   outb(0x3f6, 0);  // generate interrupt
-  outb(0x1f2, sector_per_block);  // number of sectors
+  outb(0x1f2, BSIZE / SECTOR_SIZE);  // number of sectors
   outb(0x1f3, sector & 0xff);
   outb(0x1f4, (sector >> 8) & 0xff);
   outb(0x1f5, (sector >> 16) & 0xff);
   outb(0x1f6, 0xe0 | ((b->dev&1)<<4) | ((sector>>24)&0x0f));
   if(b->flags & B_DIRTY){
-    outb(0x1f7, write_cmd);
+    outb(0x1f7, IDE_CMD_WRITE);
     outsl(0x1f0, b->data, BSIZE/4);
   } else {
-    outb(0x1f7, read_cmd);
+    outb(0x1f7, IDE_CMD_READ);
   }
 }
 

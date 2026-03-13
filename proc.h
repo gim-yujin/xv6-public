@@ -41,6 +41,7 @@ struct vmspace {
   uint sz;                     // Size of user memory (bytes)
   int ref;                     // Number of procs sharing this vmspace
   struct spinlock *vmlock;     // Serializes vm size/map updates and readers
+  int joinchan;                // Join wait channel token for this group
 };
 
 // Per-process state

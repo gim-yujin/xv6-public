@@ -110,6 +110,7 @@ int             clone(void(*)(void*), void*, void*);
 int             join(void**);
 int             growproc(int);
 int             kill(int);
+int             tkill(int);
 struct cpu*     mycpu(void);
 struct proc*    myproc();
 void            pinit(void);

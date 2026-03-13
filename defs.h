@@ -59,7 +59,7 @@ void            ideintr(void);
 void            iderw(struct buf*);
 
 // ioapic.c
-void            ioapicenable(int irq, int cpu);
+void            ioapicenable(int irq, int cpunum);
 extern uchar    ioapicid;
 void            ioapicinit(void);
 

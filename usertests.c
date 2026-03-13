@@ -623,7 +623,7 @@ createdelete(void)
     wait();
   }
 
-  cfile[0] = cfile[1] = cfile[2] = 0;
+  cfile[2] = 0;
   for(i = 0; i < N; i++){
     for(pi = 0; pi < 4; pi++){
       cfile[0] = 'p' + pi;

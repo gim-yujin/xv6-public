@@ -428,11 +428,11 @@ void
 mem(void)
 {
   void *m1, *m2;
-  int pid, ppid;
+  int ppid;
 
   printf(1, "mem test\n");
   ppid = getpid();
-  if((pid = fork()) == 0){
+  if(fork() == 0){
     m1 = 0;
     while((m2 = malloc(10001)) != 0){
       *(char**)m2 = m1;
@@ -517,7 +517,7 @@ sharedfd(void)
 void
 fourfiles(void)
 {
-  int fd, i, j, n, pi, pid;
+  int fd, i, j, n, pi;
   char *names[] = { "f0", "f1", "f2", "f3" };
   const char *fname;
 
@@ -584,7 +584,7 @@ void
 createdelete(void)
 {
   enum { N = 20 };
-  int i, fd, pi, pid;
+  int i, fd, pi;
   char cfile[32];
 
   printf(1, "createdelete test\n");
@@ -765,7 +765,7 @@ void
 concreate(void)
 {
   char file[3];
-  int i, n, fd, pid;
+  int i, n, fd;
   char fa[40];
   struct {
     ushort inum;
@@ -1497,7 +1497,7 @@ sbrktest(void)
   // can we read the kernel's memory?
   for(a = (char*)(KERNBASE); a < (char*) (KERNBASE+2000000); a += 50000){
     int ppid = getpid();
-    pid = fork();
+    int pid = fork();
     if(pid < 0){
       printf(stdout, "fork failed\n");
       exit();

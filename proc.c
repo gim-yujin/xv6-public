@@ -51,37 +51,6 @@ vmspacedecref(struct vmspace *vm)
     vmspacefree(vm);
 }
 
-static struct vmspace*
-vmspacealloc(void)
-{
-  struct vmspace *vm;
-
-  if((vm = (struct vmspace*)kalloc()) == 0)
-    return 0;
-  memset(vm, 0, sizeof(*vm));
-  return vm;
-}
-
-static void
-vmspacefree(struct vmspace *vm)
-{
-  if(vm == 0)
-    return;
-  if(vm->pgdir)
-    freevm(vm->pgdir);
-  kfree((char*)vm);
-}
-
-static void
-vmspacedecref(struct vmspace *vm)
-{
-  if(vm == 0)
-    return;
-  vm->ref--;
-  if(vm->ref == 0)
-    vmspacefree(vm);
-}
-
 void
 pinit(void)
 {

@@ -4,6 +4,7 @@
 #include "user.h"
 #include "x86.h"
 #include "mmu.h"
+#include "param.h"
 
 char*
 strcpy(char *s, const char *t)
@@ -107,6 +108,45 @@ memmove(void *vdst, const void *vsrc, int n)
 }
 
 
+struct thread_stackent {
+  int pid;
+  char *stack;
+};
+
+static struct thread_stackent threadstacks[NPROC];
+
+static int
+thread_stackrecord(int pid, char *stack)
+{
+  int i;
+
+  for(i = 0; i < NPROC; i++){
+    if(threadstacks[i].pid == 0){
+      threadstacks[i].pid = pid;
+      threadstacks[i].stack = stack;
+      return 0;
+    }
+  }
+  return -1;
+}
+
+static char*
+thread_stacktake(int pid)
+{
+  int i;
+  char *stack;
+
+  for(i = 0; i < NPROC; i++){
+    if(threadstacks[i].pid == pid){
+      stack = threadstacks[i].stack;
+      threadstacks[i].pid = 0;
+      threadstacks[i].stack = 0;
+      return stack;
+    }
+  }
+  return 0;
+}
+
 int
 thread_create(void (*start_routine)(void*), void *arg)
 {
@@ -120,6 +160,10 @@ thread_create(void (*start_routine)(void*), void *arg)
   {
     int pid = clone(start_routine, arg, aligned);
     if(pid < 0){
+      free(stack);
+      return -1;
+    }
+    if(thread_stackrecord(pid, stack) < 0){
       free(stack);
       return -1;
     }
@@ -137,9 +181,9 @@ thread_join(void)
 
   if(pid < 0)
     return -1;
-  raw = (char*)stack;
-  if(((uint)raw % PGSIZE) == 0)
-    raw -= PGSIZE;
+  raw = thread_stacktake(pid);
+  if(raw == 0)
+    return -1;
   free(raw);
   return pid;
 }

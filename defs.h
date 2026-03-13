@@ -99,7 +99,7 @@ void            picinit(void);
 int             pipealloc(struct file**, struct file**);
 void            pipeclose(struct pipe*, int);
 int             piperead(struct pipe*, char*, int);
-int             pipewrite(struct pipe*, char*, int);
+int             pipewrite(struct pipe*, const char*, int);
 
 //PAGEBREAK: 16
 // proc.c
@@ -118,7 +118,7 @@ void            setproc(struct proc*);
 void            sleep(void*, struct spinlock*);
 void            userinit(void);
 int             wait(void);
-void            wakeup(void*);
+void            wakeup(const void*);
 void            yield(void);
 
 // swtch.S

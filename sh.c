@@ -263,7 +263,7 @@ char whitespace[] = " \t\r\n\v";
 char symbols[] = "<|>&;()";
 
 int
-gettoken(char **ps, char *es, char **q, char **eq)
+gettoken(char **ps, const char *es, char **q, char **eq)
 {
   char *s;
   int ret;
@@ -308,7 +308,7 @@ gettoken(char **ps, char *es, char **q, char **eq)
 }
 
 int
-peek(char **ps, char *es, char *toks)
+peek(char **ps, const char *es, const char *toks)
 {
   char *s;
 
@@ -374,11 +374,10 @@ parsepipe(char **ps, char *es)
 struct cmd*
 parseredirs(struct cmd *cmd, char **ps, char *es)
 {
-  int tok;
   char *q, *eq;
 
   while(peek(ps, es, "<>")){
-    tok = gettoken(ps, es, 0, 0);
+    int tok = gettoken(ps, es, 0, 0);
     if(gettoken(ps, es, &q, &eq) != 'a')
       panic("missing file for redirection");
     switch(tok){
@@ -416,7 +415,7 @@ struct cmd*
 parseexec(char **ps, char *es)
 {
   char *q, *eq;
-  int tok, argc;
+  int argc;
   struct execcmd *cmd;
   struct cmd *ret;
 
@@ -429,7 +428,8 @@ parseexec(char **ps, char *es)
   argc = 0;
   ret = parseredirs(ret, ps, es);
   while(!peek(ps, es, "|)&;")){
-    if((tok=gettoken(ps, es, &q, &eq)) == 0)
+    int tok = gettoken(ps, es, &q, &eq);
+    if(tok == 0)
       break;
     if(tok != 'a')
       panic("syntax");

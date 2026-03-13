@@ -18,7 +18,38 @@ int nextpid = 1;
 extern void forkret(void);
 extern void trapret(void);
 
-static void wakeup1(void *chan);
+static void wakeup1(const void *chan);
+
+static struct vmspace*
+vmspacealloc(void)
+{
+  struct vmspace *vm;
+
+  if((vm = (struct vmspace*)kalloc()) == 0)
+    return 0;
+  memset(vm, 0, sizeof(*vm));
+  return vm;
+}
+
+static void
+vmspacefree(struct vmspace *vm)
+{
+  if(vm == 0)
+    return;
+  if(vm->pgdir)
+    freevm(vm->pgdir);
+  kfree((char*)vm);
+}
+
+static void
+vmspacedecref(struct vmspace *vm)
+{
+  if(vm == 0)
+    return;
+  vm->ref--;
+  if(vm->ref == 0)
+    vmspacefree(vm);
+}
 
 static struct vmspace*
 vmspacealloc(void)
@@ -323,13 +354,13 @@ int
 wait(void)
 {
   struct proc *p;
-  int havekids, pid;
+  int pid;
   struct proc *curproc = myproc();
   
   acquire(&ptable.lock);
   for(;;){
     // Scan through table looking for exited children.
-    havekids = 0;
+    int havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != curproc)
         continue;
@@ -512,7 +543,7 @@ sleep(void *chan, struct spinlock *lk)
 // Wake up all processes sleeping on chan.
 // The ptable lock must be held.
 static void
-wakeup1(void *chan)
+wakeup1(const void *chan)
 {
   struct proc *p;
 
@@ -523,7 +554,7 @@ wakeup1(void *chan)
 
 // Wake up all processes sleeping on chan.
 void
-wakeup(void *chan)
+wakeup(const void *chan)
 {
   acquire(&ptable.lock);
   wakeup1(chan);

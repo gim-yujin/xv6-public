@@ -281,9 +281,9 @@ clone(void (*fcn)(void*), void *arg, void *stack)
   struct proc *np;
   struct proc *curproc = myproc();
 
-  if(fcn == 0 || arg == 0 || stack == 0)
+  if(fcn == 0 || stack == 0)
     return -1;
-  if(((uint)stack % PGSIZE) != 0)
+  if(((uint)stack % 4) != 0)
     return -1;
 
   if((np = allocproc()) == 0)
@@ -294,7 +294,7 @@ clone(void (*fcn)(void*), void *arg, void *stack)
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
-  sp = (uint)stack + PGSIZE;
+  sp = (uint)stack;
   sp -= 4;
   *(uint*)sp = 0xffffffff;
   sp -= 4;

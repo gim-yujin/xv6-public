@@ -338,7 +338,9 @@ join(void **stack)
   for(;;){
     int havethreads = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc || p->isthread == 0)
+      if(p == curproc)
+        continue;
+      if(p->tgid != curproc->tgid || p->isthread == 0)
         continue;
       havethreads = 1;
       if(p->state == ZOMBIE){
@@ -347,7 +349,6 @@ join(void **stack)
           *stack = p->ustack;
         kfree(p->kstack);
         p->kstack = 0;
-        vmspacedecref(p->vm);
         p->vm = 0;
         p->pid = 0;
         p->isthread = 0;
@@ -383,9 +384,24 @@ exit(void)
   struct proc *curproc = myproc();
   struct proc *p;
   int fd;
+  int lastthread;
 
   if(curproc == initproc)
     panic("init exiting");
+
+  acquire(&ptable.lock);
+  lastthread = (curproc->vm == 0 || curproc->vm->ref == 1);
+  vmspacedecref(curproc->vm);
+  curproc->vm = 0;
+
+  if(!lastthread){
+    wakeup1(curproc->parent);
+    curproc->state = ZOMBIE;
+    sched();
+    panic("zombie exit");
+  }
+
+  release(&ptable.lock);
 
   // Close all open files.
   for(fd = 0; fd < NOFILE; fd++){
@@ -436,13 +452,14 @@ wait(void)
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->parent != curproc)
         continue;
+      if(p->isthread)
+        continue;
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        vmspacedecref(p->vm);
         p->vm = 0;
         p->pid = 0;
         p->isthread = 0;

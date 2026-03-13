@@ -33,12 +33,14 @@ struct context {
 };
 
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+struct spinlock;
 
 // Per-thread-group virtual memory state.
 struct vmspace {
   pde_t *pgdir;                // Page table shared by threads in the group
   uint sz;                     // Size of user memory (bytes)
   int ref;                     // Number of procs sharing this vmspace
+  struct spinlock *vmlock;     // Serializes vm size/map updates and readers
 };
 
 // Per-process state

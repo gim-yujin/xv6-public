@@ -19,9 +19,13 @@ fetchint(uint addr, int *ip)
 {
   const struct proc *curproc = myproc();
 
-  if(addr >= curproc->vm->sz || addr+4 > curproc->vm->sz)
+  acquire(curproc->vm->vmlock);
+  if(addr >= curproc->vm->sz || addr+4 > curproc->vm->sz){
+    release(curproc->vm->vmlock);
     return -1;
+  }
   *ip = *(int*)(addr);
+  release(curproc->vm->vmlock);
   return 0;
 }
 
@@ -35,14 +39,20 @@ fetchstr(uint addr, char **pp)
   const char *ep;
   const struct proc *curproc = myproc();
 
-  if(addr >= curproc->vm->sz)
+  acquire(curproc->vm->vmlock);
+  if(addr >= curproc->vm->sz){
+    release(curproc->vm->vmlock);
     return -1;
+  }
   *pp = (char*)addr;
   ep = (char*)curproc->vm->sz;
   for(s = *pp; s < ep; s++){
-    if(*s == 0)
+    if(*s == 0){
+      release(curproc->vm->vmlock);
       return s - *pp;
+    }
   }
+  release(curproc->vm->vmlock);
   return -1;
 }
 
@@ -64,9 +74,13 @@ argptr(int n, char **pp, int size)
  
   if(argint(n, &i) < 0)
     return -1;
-  if(size < 0 || (uint)i >= curproc->vm->sz || (uint)i+size > curproc->vm->sz)
+  acquire(curproc->vm->vmlock);
+  if(size < 0 || (uint)i >= curproc->vm->sz || (uint)i+size > curproc->vm->sz){
+    release(curproc->vm->vmlock);
     return -1;
+  }
   *pp = (char*)i;
+  release(curproc->vm->vmlock);
   return 0;
 }
 

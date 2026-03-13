@@ -28,6 +28,11 @@ vmspacealloc(void)
   if((vm = (struct vmspace*)kalloc()) == 0)
     return 0;
   memset(vm, 0, sizeof(*vm));
+  if((vm->vmlock = (struct spinlock*)kalloc()) == 0){
+    kfree((char*)vm);
+    return 0;
+  }
+  initlock(vm->vmlock, "vmlock");
   return vm;
 }
 
@@ -38,6 +43,8 @@ vmspacefree(struct vmspace *vm)
     return;
   if(vm->pgdir)
     freevm(vm->pgdir);
+  if(vm->vmlock)
+    kfree((char*)vm->vmlock);
   kfree((char*)vm);
 }
 
@@ -202,15 +209,22 @@ growproc(int n)
   uint sz;
   struct proc *curproc = myproc();
 
+  acquire(curproc->vm->vmlock);
   sz = curproc->vm->sz;
   if(n > 0){
-    if((sz = allocuvm(curproc->vm->pgdir, sz, sz + n)) == 0)
+    if((sz = allocuvm(curproc->vm->pgdir, sz, sz + n)) == 0){
+      release(curproc->vm->vmlock);
       return -1;
+    }
   } else if(n < 0){
-    if((sz = deallocuvm(curproc->vm->pgdir, sz, sz + n)) == 0)
+    if((sz = deallocuvm(curproc->vm->pgdir, sz, sz + n)) == 0){
+      release(curproc->vm->vmlock);
       return -1;
+    }
   }
   curproc->vm->sz = sz;
+  release(curproc->vm->vmlock);
+
   switchuvm(curproc);
   return 0;
 }
@@ -237,7 +251,9 @@ fork(void)
     np->state = UNUSED;
     return -1;
   }
+  acquire(curproc->vm->vmlock);
   if((np->vm->pgdir = copyuvm(curproc->vm->pgdir, curproc->vm->sz)) == 0){
+    release(curproc->vm->vmlock);
     kfree((char*)np->vm);
     np->vm = 0;
     kfree(np->kstack);
@@ -246,6 +262,7 @@ fork(void)
     return -1;
   }
   np->vm->sz = curproc->vm->sz;
+  release(curproc->vm->vmlock);
   np->vm->ref = 1;
   np->parent = curproc;
   *np->tf = *curproc->tf;

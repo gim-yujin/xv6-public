@@ -16,7 +16,7 @@ int ncpu;
 uchar ioapicid;
 
 static uchar
-sum(uchar *addr, int len)
+sum(const uchar *addr, int len)
 {
   int i, sum;
 
@@ -30,7 +30,8 @@ sum(uchar *addr, int len)
 static struct mp*
 mpsearch1(uint a, int len)
 {
-  uchar *e, *p, *addr;
+  const uchar *e;
+  uchar *p, *addr;
 
   addr = P2V(a);
   e = addr+len;
@@ -48,7 +49,7 @@ mpsearch1(uint a, int len)
 static struct mp*
 mpsearch(void)
 {
-  uchar *bda;
+  const uchar *bda;
   uint p;
   struct mp *mp;
 
@@ -91,16 +92,17 @@ mpconfig(struct mp **pmp)
 void
 mpinit(void)
 {
-  uchar *p, *e;
-  int ismp;
+  uchar *p;
+  const uchar *e;
+  int mpok;
   struct mp *mp;
   struct mpconf *conf;
-  struct mpproc *proc;
-  struct mpioapic *ioapic;
+  const struct mpproc *proc;
+  const struct mpioapic *ioapic;
 
   if((conf = mpconfig(&mp)) == 0)
     panic("Expect to run on an SMP");
-  ismp = 1;
+  mpok = 1;
   lapic = (uint*)conf->lapicaddr;
   for(p=(uchar*)(conf+1), e=(uchar*)conf+conf->length; p<e; ){
     switch(*p){
@@ -123,11 +125,11 @@ mpinit(void)
       p += 8;
       continue;
     default:
-      ismp = 0;
+      mpok = 0;
       break;
     }
   }
-  if(!ismp)
+  if(!mpok)
     panic("Didn't find a suitable machine");
 
   if(mp->imcrp){

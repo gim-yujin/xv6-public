@@ -3,10 +3,10 @@
 static inline uchar
 inb(ushort port)
 {
-  uchar data;
+  uchar value;
 
-  asm volatile("in %1,%0" : "=a" (data) : "d" (port));
-  return data;
+  asm volatile("in %1,%0" : "=a" (value) : "d" (port));
+  return value;
 }
 
 static inline void

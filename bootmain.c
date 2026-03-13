@@ -18,9 +18,9 @@ void
 bootmain(void)
 {
   struct elfhdr *elf;
-  struct proghdr *ph, *eph;
+  struct proghdr *ph;
+  const struct proghdr *eph;
   void (*entry)(void);
-  uchar* pa;
 
   elf = (struct elfhdr*)0x10000;  // scratch space
 
@@ -35,7 +35,7 @@ bootmain(void)
   ph = (struct proghdr*)((uchar*)elf + elf->phoff);
   eph = ph + elf->phnum;
   for(; ph < eph; ph++){
-    pa = (uchar*)ph->paddr;
+    uchar *pa = (uchar*)ph->paddr;
     readseg(pa, ph->filesz, ph->off);
     if(ph->memsz > ph->filesz)
       stosb(pa + ph->filesz, 0, ph->memsz - ph->filesz);
@@ -78,9 +78,7 @@ readsect(void *dst, uint offset)
 void
 readseg(uchar* pa, uint count, uint offset)
 {
-  uchar* epa;
-
-  epa = pa + count;
+  const uchar *epa = pa + count;
 
   // Round down to sector boundary.
   pa -= offset % SECTSIZE;

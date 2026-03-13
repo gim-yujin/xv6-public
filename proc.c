@@ -20,6 +20,37 @@ extern void trapret(void);
 
 static void wakeup1(void *chan);
 
+static struct vmspace*
+vmspacealloc(void)
+{
+  struct vmspace *vm;
+
+  if((vm = (struct vmspace*)kalloc()) == 0)
+    return 0;
+  memset(vm, 0, sizeof(*vm));
+  return vm;
+}
+
+static void
+vmspacefree(struct vmspace *vm)
+{
+  if(vm == 0)
+    return;
+  if(vm->pgdir)
+    freevm(vm->pgdir);
+  kfree((char*)vm);
+}
+
+static void
+vmspacedecref(struct vmspace *vm)
+{
+  if(vm == 0)
+    return;
+  vm->ref--;
+  if(vm->ref == 0)
+    vmspacefree(vm);
+}
+
 void
 pinit(void)
 {
@@ -88,6 +119,13 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->isthread = 0;
+  p->tid = p->pid;
+  p->tgid = p->pid;
+  p->mainthread = 1;
+  p->ustack = 0;
+  p->retval = 0;
+  p->vm = 0;
 
   release(&ptable.lock);
 
@@ -126,10 +164,13 @@ userinit(void)
   p = allocproc();
   
   initproc = p;
-  if((p->pgdir = setupkvm()) == 0)
+  if((p->vm = vmspacealloc()) == 0)
     panic("userinit: out of memory?");
-  inituvm(p->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
-  p->sz = PGSIZE;
+  if((p->vm->pgdir = setupkvm()) == 0)
+    panic("userinit: out of memory?");
+  p->vm->ref = 1;
+  inituvm(p->vm->pgdir, _binary_initcode_start, (int)_binary_initcode_size);
+  p->vm->sz = PGSIZE;
   memset(p->tf, 0, sizeof(*p->tf));
   p->tf->cs = (SEG_UCODE << 3) | DPL_USER;
   p->tf->ds = (SEG_UDATA << 3) | DPL_USER;
@@ -161,15 +202,15 @@ growproc(int n)
   uint sz;
   struct proc *curproc = myproc();
 
-  sz = curproc->sz;
+  sz = curproc->vm->sz;
   if(n > 0){
-    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
+    if((sz = allocuvm(curproc->vm->pgdir, sz, sz + n)) == 0)
       return -1;
   } else if(n < 0){
-    if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
+    if((sz = deallocuvm(curproc->vm->pgdir, sz, sz + n)) == 0)
       return -1;
   }
-  curproc->sz = sz;
+  curproc->vm->sz = sz;
   switchuvm(curproc);
   return 0;
 }
@@ -190,13 +231,22 @@ fork(void)
   }
 
   // Copy process state from proc.
-  if((np->pgdir = copyuvm(curproc->pgdir, curproc->sz)) == 0){
+  if((np->vm = vmspacealloc()) == 0){
     kfree(np->kstack);
     np->kstack = 0;
     np->state = UNUSED;
     return -1;
   }
-  np->sz = curproc->sz;
+  if((np->vm->pgdir = copyuvm(curproc->vm->pgdir, curproc->vm->sz)) == 0){
+    kfree((char*)np->vm);
+    np->vm = 0;
+    kfree(np->kstack);
+    np->kstack = 0;
+    np->state = UNUSED;
+    return -1;
+  }
+  np->vm->sz = curproc->vm->sz;
+  np->vm->ref = 1;
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
@@ -289,8 +339,15 @@ wait(void)
         pid = p->pid;
         kfree(p->kstack);
         p->kstack = 0;
-        freevm(p->pgdir);
+        vmspacedecref(p->vm);
+        p->vm = 0;
         p->pid = 0;
+        p->isthread = 0;
+        p->tid = 0;
+        p->tgid = 0;
+        p->mainthread = 0;
+        p->ustack = 0;
+        p->retval = 0;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;

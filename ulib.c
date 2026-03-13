@@ -164,7 +164,7 @@ thread_create(void (*start_routine)(void*), void *arg)
       return -1;
     }
     if(thread_stackrecord(pid, stack) < 0){
-      free(stack);
+      tkill(pid);
       return -1;
     }
     return pid;

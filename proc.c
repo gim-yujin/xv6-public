@@ -254,7 +254,7 @@ fork(void)
   acquire(curproc->vm->vmlock);
   if((np->vm->pgdir = copyuvm(curproc->vm->pgdir, curproc->vm->sz)) == 0){
     release(curproc->vm->vmlock);
-    kfree((char*)np->vm);
+    vmspacefree(np->vm);
     np->vm = 0;
     kfree(np->kstack);
     np->kstack = 0;
@@ -306,8 +306,11 @@ clone(void (*fcn)(void*), void *arg, void *stack)
   if((np = allocproc()) == 0)
     return -1;
 
+  acquire(&ptable.lock);
   np->vm = curproc->vm;
   np->vm->ref++;
+  release(&ptable.lock);
+
   np->parent = curproc;
   *np->tf = *curproc->tf;
 

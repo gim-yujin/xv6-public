@@ -527,7 +527,7 @@ fourfiles(void)
     fname = names[pi];
     unlink(fname);
 
-    pid = fork();
+    int pid = fork();
     if(pid < 0){
       printf(1, "fork failed\n");
       exit();
@@ -590,7 +590,7 @@ createdelete(void)
   printf(1, "createdelete test\n");
 
   for(pi = 0; pi < 4; pi++){
-    pid = fork();
+    int pid = fork();
     if(pid < 0){
       printf(1, "fork failed\n");
       exit();
@@ -826,7 +826,7 @@ concreate(void)
 
   for(i = 0; i < 40; i++){
     file[1] = '0' + i;
-    pid = fork();
+    int pid = fork();
     if(pid < 0){
       printf(1, "fork failed\n");
       exit();

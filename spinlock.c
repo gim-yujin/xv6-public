@@ -87,7 +87,7 @@ getcallerpcs(void *v, uint pcs[])
 
 // Check whether this cpu is holding the lock.
 int
-holding(struct spinlock *lock)
+holding(const struct spinlock *lock)
 {
   int r;
   pushcli();

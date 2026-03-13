@@ -11,7 +11,7 @@ putc(int fd, char c)
 static void
 printint(int fd, int xx, int base, int sgn)
 {
-  static char digits[] = "0123456789ABCDEF";
+  static const char digits[] = "0123456789ABCDEF";
   char buf[16];
   int i, neg;
   uint x;
@@ -40,13 +40,13 @@ void
 printf(int fd, const char *fmt, ...)
 {
   char *s;
-  int c, i, state;
+  int i, state;
   uint *ap;
 
   state = 0;
   ap = (uint*)(void*)&fmt + 1;
   for(i = 0; fmt[i]; i++){
-    c = fmt[i] & 0xff;
+    int c = fmt[i] & 0xff;
     if(state == 0){
       if(c == '%'){
         state = '%';

@@ -13,6 +13,7 @@ union header {
     union header *ptr;
     uint size;
   } s;
+  // cppcheck-suppress unusedStructMember
   Align x;
 };
 

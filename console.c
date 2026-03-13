@@ -245,7 +245,6 @@ int
 consoleread(struct inode *ip, char *dst, int n)
 {
   uint target;
-  int c;
 
   iunlock(ip);
   target = n;
@@ -259,7 +258,7 @@ consoleread(struct inode *ip, char *dst, int n)
       }
       sleep(&input.r, &cons.lock);
     }
-    c = input.buf[input.r++ % INPUT_BUF];
+    int c = input.buf[input.r++ % INPUT_BUF];
     if(c == C('D')){  // EOF
       if(n < target){
         // Save ^D for next time, to make sure

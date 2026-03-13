@@ -78,7 +78,7 @@ readsect(void *dst, uint offset)
 void
 readseg(uchar* pa, uint count, uint offset)
 {
-  uchar* const epa = pa + count;
+  const uchar *epa = pa + count;
 
   // Round down to sector boundary.
   pa -= offset % SECTSIZE;

@@ -35,7 +35,7 @@ wc(int fd, char *name)
 int
 main(int argc, char *argv[])
 {
-  int fd, i;
+  int i;
 
   if(argc <= 1){
     wc(0, "");
@@ -43,6 +43,8 @@ main(int argc, char *argv[])
   }
 
   for(i = 1; i < argc; i++){
+    int fd;
+
     if((fd = open(argv[i], 0)) < 0){
       printf(1, "wc: cannot open %s\n", argv[i]);
       exit();

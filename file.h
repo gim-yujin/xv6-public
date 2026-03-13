@@ -29,7 +29,7 @@ struct inode {
 // device functions
 struct devsw {
   int (*read)(struct inode*, char*, int);
-  int (*write)(struct inode*, char*, int);
+  int (*write)(struct inode*, const char*, int);
 };
 
 extern struct devsw devsw[];

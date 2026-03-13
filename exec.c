@@ -10,7 +10,8 @@
 int
 exec(char *path, char **argv)
 {
-  char *s, *last;
+  char *s;
+  const char *last;
   int i, off;
   uint argc, sz, sp, ustack[3+MAXARG+1];
   struct elfhdr elf;
@@ -94,9 +95,9 @@ exec(char *path, char **argv)
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
   // Commit to the user image.
-  oldpgdir = curproc->pgdir;
-  curproc->pgdir = pgdir;
-  curproc->sz = sz;
+  oldpgdir = curproc->vm->pgdir;
+  curproc->vm->pgdir = pgdir;
+  curproc->vm->sz = sz;
   curproc->tf->eip = elf.entry;  // main
   curproc->tf->esp = sp;
   switchuvm(curproc);
